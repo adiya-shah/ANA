@@ -1,24 +1,122 @@
-<!-- Блок 1 -->
-<div class="form-step" id="step1">
-  <h2>Настроение</h2>
-  <p>1. Я могла смеяться и видеть хорошее...</p>
-  <label><input type="radio" name="q1" value="0"> Почти всегда</label><br>
-  <label><input type="radio" name="q1" value="1"> Иногда</label><br>
-  <button onclick="nextStep(2)">Далее</button>
-</div>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Опросник по Эдинбургской шкале</title>
+  <style>
+    body { font-family: sans-serif; background: #f0f4f8; padding: 20px; }
+    .container { max-width: 600px; margin: auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    h1 { text-align: center; }
+    label { display: block; margin: 10px 0; }
+    button { margin-top: 15px; padding: 10px 20px; border: none; border-radius: 8px; background: #4CAF50; color: #fff; cursor: pointer; }
+    #message { text-align: center; color: #b00; font-weight: bold; margin-bottom: 20px; }
+    #result { margin-top: 20px; }
+    #historyChart { margin-top: 20px; }
+  </style>
+  <!-- SheetJS для Excel и Chart.js для графика -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>Опросник по Эдинбургской шкале</h1>
+    <div id="message"></div>
+    <form id="surveyForm">
+      <label>Имя/ID:<br><input type="text" id="userId" required></label>
+      <!-- 10 вопросов -->
+      <!-- Каждый вопрос: естественный текст и 4 опции -->
+      <div id="questions">
+        <!-- Вопросы генерируем через JS или вручную вставляем -->
+        <!-- Пример вопроса -->
+        <label>1. Я могла смеяться и видеть хорошее в жизни:<br>
+          <input type="radio" name="q1" value="0"> Почти всегда<br>
+          <input type="radio" name="q1" value="1"> Большую часть времени<br>
+          <input type="radio" name="q1" value="2"> Иногда<br>
+          <input type="radio" name="q1" value="3"> Почти никогда
+        </label>
+        <!-- Повторить аналогично для q2–q10 -->
+      </div>
+      <button type="submit" id="submitBtn">Отправить</button>
+    </form>
 
-<!-- Блок 2 -->
-<div class="form-step" id="step2" style="display:none">
-  <h2>Сон и усталость</h2>
-  <p>2. Я спала хуже обычного...</p>
-  <label><input type="radio" name="q2" value="0"> Нет</label><br>
-  <label><input type="radio" name="q2" value="1"> Немного</label><br>
-  <button onclick="prevStep(1)">Назад</button>
-  <button onclick="nextStep(3)">Далее</button>
-</div>
+    <div id="result" style="display:none">
+      <h2>Ваш результат: <span id="score"></span></h2>
+      <p>Уровень риска: <span id="level"></span></p>
+      <div id="advice"></div>
+      <canvas id="historyChart" width="400" height="200"></canvas><br>
+      <button id="downloadBtn">Скачать отчёт в Excel</button>
+    </div>
+  </div>
 
-<!-- Последний экран -->
-<div class="form-step" id="step3" style="display:none">
-  <h2>Готово!</h2>
-  <button onclick="submitForm()">Посмотреть результат</button>
-</div>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Проверка последнего прохождения
+      const history = JSON.parse(localStorage.getItem('testHistory') || '[]');
+      if (history.length) {
+        const lastDate = new Date(history[history.length - 1].date);
+        const now = new Date();
+        const diff = Math.floor((now - lastDate) / (1000*60*60*24));
+        if (diff < 7) {
+          document.getElementById('message').textContent =
+            `Ты уже проходила тест ${diff} дней назад. Повтори через ${7-diff} дней.`;
+          document.getElementById('surveyForm').style.display = 'none';
+        }
+      }
+    });
+
+    document.getElementById('surveyForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      // Собираем ответы
+      let total = 0;
+      for (let i = 1; i <= 10; i++) {
+        const val = document.querySelector(`input[name=\`q${i}\`]:checked`);
+        if (!val) { alert(`Пожалуйста, ответьте на вопрос ${i}.`); return; }
+        total += parseInt(val.value);
+      }
+      const userId = document.getElementById('userId').value;
+      // Определяем уровень риска
+      let level = 'низкий';
+      if (total >= 10 && total < 13) level = 'умеренный';
+      else if (total >= 13) level = 'высокий';
+      // Обновляем историю
+      const history = JSON.parse(localStorage.getItem('testHistory') || '[]');
+      const date = new Date().toISOString().split('T')[0];
+      history.push({ date, userId, score: total, level });
+      localStorage.setItem('testHistory', JSON.stringify(history));
+      // Показываем результат
+      document.getElementById('surveyForm').style.display = 'none';
+      document.getElementById('result').style.display = 'block';
+      document.getElementById('score').textContent = total;
+      document.getElementById('level').textContent = level;
+      // Советы
+      let adviceText = '';
+      if (level === 'низкий') adviceText = 'У вас низкий риск. Продолжайте следить за собой и отдыхать.';
+      else if (level === 'умеренный') adviceText = 'Умеренный риск. Постарайтесь больше отдыхать и поговорить с близкими.';
+      else adviceText = 'Высокий риск. Рекомендуем обратиться к специалисту как можно скорее.';
+      document.getElementById('advice').textContent = adviceText;
+      // График
+      const ctx = document.getElementById('historyChart').getContext('2d');
+      const labels = history.map(h => h.date);
+      const data = history.map(h => h.score);
+      if (window.myChart) window.myChart.destroy();
+      window.myChart = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets: [{ label: 'Баллы', data, fill: false }] },
+        options: { scales: { y: { beginAtZero: true } } }
+      });
+    });
+
+    document.getElementById('downloadBtn').addEventListener('click', function() {
+      const history = JSON.parse(localStorage.getItem('testHistory') || '[]');
+      if (!history.length) { alert('Нет данных для отчёта.'); return; }
+      const ws_data = [['Дата','UserID','Баллы','Уровень']];
+      history.forEach(h => ws_data.push([h.date, h.userId, h.score, h.level]));
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(ws_data);
+      XLSX.utils.book_append_sheet(wb, ws, 'Отчет');
+      XLSX.writeFile(wb, 'report.xlsx');
+    });
+  </script>
+</body>
+</html>
