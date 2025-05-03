@@ -1,53 +1,24 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>EPDS Опрос</title>
-</head>
-<body>
-    <h1>Форма Эдинбургской шкалы послеродовой депрессии</h1>
-    <form id="epdsForm">
-        <label>Имя:</label><br>
-        <input type="text" name="name" required><br><br>
-        <label>Email:</label><br>
-        <input type="email" name="email" required><br><br>
+<!-- Блок 1 -->
+<div class="form-step" id="step1">
+  <h2>Настроение</h2>
+  <p>1. Я могла смеяться и видеть хорошее...</p>
+  <label><input type="radio" name="q1" value="0"> Почти всегда</label><br>
+  <label><input type="radio" name="q1" value="1"> Иногда</label><br>
+  <button onclick="nextStep(2)">Далее</button>
+</div>
 
-        <label>1. Я могла смеяться и видеть смешное в вещах</label><br>
-        <input type="radio" name="q1" value="0" required> Как обычно<br>
-        <input type="radio" name="q1" value="1"> Меньше<br>
-        <input type="radio" name="q1" value="2"> Намного меньше<br>
-        <input type="radio" name="q1" value="3"> Совсем не могла<br><br>
+<!-- Блок 2 -->
+<div class="form-step" id="step2" style="display:none">
+  <h2>Сон и усталость</h2>
+  <p>2. Я спала хуже обычного...</p>
+  <label><input type="radio" name="q2" value="0"> Нет</label><br>
+  <label><input type="radio" name="q2" value="1"> Немного</label><br>
+  <button onclick="prevStep(1)">Назад</button>
+  <button onclick="nextStep(3)">Далее</button>
+</div>
 
-        <!-- Добавь остальные 9 вопросов по аналогии -->
-
-        <button type="button" onclick="submitForm()">Отправить</button>
-    </form>
-
-    <script>
-        function submitForm() {
-            const form = document.getElementById('epdsForm');
-            const formData = new FormData(form);
-            const data = {};
-
-            formData.forEach((value, key) => {
-                data[key] = value;
-            });
-
-            fetch('http://localhost:5000/submit', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data)
-            })
-            .then(response => response.json())
-            .then(result => {
-                alert(result.message);
-            })
-            .catch(error => {
-                alert('Ошибка: ' + error);
-            });
-        }
-    </script>
-</body>
-</html>
+<!-- Последний экран -->
+<div class="form-step" id="step3" style="display:none">
+  <h2>Готово!</h2>
+  <button onclick="submitForm()">Посмотреть результат</button>
+</div>
